@@ -13,6 +13,8 @@ import androidx.core.app.NotificationManagerCompat
 import com.clipboardtranslator.Constants.CHARSET_WIN_1251
 import com.clipboardtranslator.Constants.DEFAULT_DICTIONARY_PATH
 import com.google.common.base.Strings
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -64,7 +66,7 @@ class TranslationService : Service(), OnPrimaryClipChangedListener {
     }
 
     private fun translateAndPublish(clipboardText: String?) {
-        Handler(mainLooper).post {
+        GlobalScope.launch {
             try {
                 val reader = BufferedReader(InputStreamReader(
                         assets.open(DEFAULT_DICTIONARY_PATH), Charset.forName(CHARSET_WIN_1251)))
@@ -73,7 +75,7 @@ class TranslationService : Service(), OnPrimaryClipChangedListener {
                     when {
                         line?.split("=")?.get(0) == clipboardText!!.toLowerCase(Locale.ROOT)  -> {
                             publishTranslated(line)
-                            return@post
+                            return@launch
                         }
                     }
                 }
@@ -86,9 +88,11 @@ class TranslationService : Service(), OnPrimaryClipChangedListener {
     }
 
     private fun publishTranslated(line: String) {
-        when {
-            mTranslateInNotifications -> publishNotification(line)
-            else -> Toast.makeText(applicationContext, line.split("=")[1], Toast.LENGTH_SHORT).show()
+        Handler(mainLooper).post {
+            when {
+                mTranslateInNotifications -> publishNotification(line)
+                else -> Toast.makeText(applicationContext, line.split("=")[1], Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
