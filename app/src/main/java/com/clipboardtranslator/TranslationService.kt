@@ -5,7 +5,6 @@ import android.app.Service
 import android.content.ClipboardManager
 import android.content.ClipboardManager.OnPrimaryClipChangedListener
 import android.content.Intent
-import android.os.Handler
 import android.os.IBinder
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -14,6 +13,7 @@ import com.clipboardtranslator.Constants.CHARSET_WIN_1251
 import com.clipboardtranslator.Constants.DEFAULT_DICTIONARY_PATH
 import com.google.common.base.Strings
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.IOException
@@ -79,7 +79,7 @@ class TranslationService : Service(), OnPrimaryClipChangedListener {
                         }
                     }
                 }
-                Toast.makeText(applicationContext, getString(R.string.toast_not_found), Toast.LENGTH_SHORT).show()
+                publishToast(getString(R.string.toast_not_found));
             } catch (e: IOException) {
                 Toast.makeText(applicationContext, getString(R.string.toast_error_message, e.localizedMessage),
                         Toast.LENGTH_SHORT).show()
@@ -88,11 +88,15 @@ class TranslationService : Service(), OnPrimaryClipChangedListener {
     }
 
     private fun publishTranslated(line: String) {
-        Handler(mainLooper).post {
-            when {
-                mTranslateInNotifications -> publishNotification(line)
-                else -> Toast.makeText(applicationContext, line.split("=")[1], Toast.LENGTH_SHORT).show()
-            }
+        when {
+            mTranslateInNotifications -> publishNotification(line)
+            else -> publishToast(line.split("=")[1])
+        }
+    }
+
+    private fun publishToast(text: String) {
+        MainScope().launch {
+            Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show()
         }
     }
 
